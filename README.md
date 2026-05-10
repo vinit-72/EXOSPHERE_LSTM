@@ -1,47 +1,52 @@
-# ExoSphere
+# ExoSphere - LSTM Traffic Detection
 
-![Licence](https://img.shields.io/github/license/fuchuanpu/exosphere)
-![Last](https://img.shields.io/github/last-commit/fuchuanpu/exosphere)
-![Language](https://img.shields.io/github/languages/count/fuchuanpu/exosphere)
+`ExoSphere` is a PyTorch project for DDoS detection using packet-level traces.
 
-## 0x00 Introduction
-`Exosphere` is a deep learning based traffic detection system. Particularly, it aims to capture tunneled flooding traffic. 
-It leverages deep learning based semantic analysis to extract semantic features, i.e., the features represent strong correlations between flooding packets with similar length patterns.
+## What changed
+- Replaced the original 1D U-Net CNN architecture with a 3-layer LSTM model in `model.py`.
+- Updated the active pipeline in `train.py` to use `ExosphereLSTM` by default.
+- Added sequence balancing in `data.py` so the training set retains more attack-containing segments and reduces benign-only noise.
+- Preserved the legacy CNN code as a comparison reference.
 
-This repository provides a `PyTorch` based demo, which is easy to reproduce. Meanwhile, we also provide [full version](https://drive.google.com/file/d/1_P8HIs3Q9f_HlA9_x2HMr0q6ScPzrF0g/view?usp=drive_link) of the paper for reference.
+## Novelty
+- Uses an LSTM to model packet sequence behavior, capturing temporal relationships in inter-arrival times and packet sizes.
+- Focuses on sequential attack patterns rather than only local convolutional features.
+- Applies a mixed loss of binary cross-entropy and Dice loss for more stable packet-level anomaly scoring.
+- Improves sensitivity for flooding-style attacks by training on balanced sequences with stronger attack signal representation.
 
+## Pipeline
+- `data.py`: reads packet traces, converts timestamps to inter-arrival times, normalizes lengths, and segments the sequence.
+- `model.py`: defines a 3-layer LSTM with 64 hidden units and a final linear output.
+- `train.py`: trains with Adam and a combined BCE + Dice loss, evaluates AUC/F1/EER, and saves plots.
 
-## 0x01 Environment
-
-`Exosphere` requires `PyTorch` (CUDA version) for DNN training and testing. It relys on `matplotlib`, `numpy` and `sklearn` for analyzing the detection accuracy.
-
-This demo has been tested on a GPU server with 4 `NVIDIA Tesla V100` (32GB), `Ubuntu` v20.04 official image, `Python` v3.8.10, and `PyTorch` v1.11.0 for `CUDA` v11.3.
-
-| Please be aware that the demo processes four traces simultaneously. Therefore, it is recommended to allocate at least 16MB of memory.
- 
-
-## 0x02 Usage
-First please download the datasets.
+## Usage
+1. Install dependencies:
+```bash
+pip install torch matplotlib numpy scikit-learn
+```
+2. Download the dataset and place it in `dataset/`.
 ```bash
 wget https://www.exosphere.fuchuanpu.xyz/dataset.zip
-unzip dataset.zip && rm $_
+unzip dataset.zip -d dataset
 ```
-
-Run the following command to apply `Exosphere` for detecting amplification attack traffic:
+3. Run training / detection with a config file:
 ```bash
-./main.py -c ./config/config_amplification.json
+python main.py -c ./config/config_amplification.json
 ```
-The results can be found in `./log/amplification/`. We plot RoC curves in `./figures/amplification/`.
-
-Similarly, we provide examples for detecting other types of DDoS attacks.
+4. For other attack types, replace the config file:
 ```bash
-./main.py -c ./config/config_application.json
-./main.py -c ./config/config_bruteforce.json
-./main.py -c ./config/config_flooding.json
+python main.py -c ./config/config_application.json
+python main.py -c ./config/config_bruteforce.json
+python main.py -c ./config/config_flooding.json
 ```
 
-Finally, the results can be cleaned by `./clean.sh`.
+## Notes
+- LSTM is the main model now.
+- Legacy U-Net code remains in `model.py`.
+- Datasets are plain text traces under `dataset/`.
 
-## 0x03 Maintainer
-[Chuanpu Fu](fcp20@tsinghua.edu.cn)
+## Summary
+- Replaced the original 1D U-Net CNN with an LSTM model in `model.py`.
+- The active pipeline uses `ExosphereLSTM` by default (`use_lstm = True` in `train.py`).
+- `data.py` builds normalized packet sequences and balances benign-only segments.
 
