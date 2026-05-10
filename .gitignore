@@ -1,0 +1,6 @@
+# Ignore dataset files and generated outputs
+dataset/
+
+# OS files
+.DS_Store
+Thumbs.db
